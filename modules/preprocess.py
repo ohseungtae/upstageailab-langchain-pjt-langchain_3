@@ -1,123 +1,101 @@
-# preprocess.py
+# modules/preprocess.py
 import json
 import re
 import os
 import glob
+from difflib import SequenceMatcher # --- 추가된 부분 ---
+from . import config # --- 추가된 부분 ---
+
+# --- 추가된 부분: 유사도 계산 헬퍼 함수 ---
+def similarity(a, b):
+    return SequenceMatcher(None, a, b).ratio()
 
 class DataPreprocessor:
     """
-    크롤링된 레시피 JSON 데이터를 불러와 전처리하고 새로운 파일로 저장하는 클래스.
+    폴더의 모든 JSON을 읽어 전처리하고, 제목 유사도를 기반으로 중복을 제거한 뒤 
+    하나의 파일로 저장하는 클래스.
     """
     def clean_title(self, title):
-        stop_words = ['백종원', '레시피', '만들기', '만드는 법', '황금레시피', '꿀맛이네', '초간단', '밑반찬']
+        stop_words = ['백종원', '레시피', '만들기', '만드는 법', '황금레시피', '꿀맛이네', 
+                      '초간단', '밑반찬', '백파더', '골목식당']
         for word in stop_words:
             title = title.replace(word, '')
-        title = re.sub(r'\([^)]*\)', '', title)
+        title = re.sub(r'\([^)]*\)', '', title) # 괄호와 내용 제거
+        title = re.sub(r'\[[^)]*\]', '', title) # 대괄호와 내용 제거
         title = re.split(r'[#♡~]', title)[0]
         return title.strip()
 
-
     def clean_ingredients(self, ingredients):
-        """
-        재료 문자열의 불필요한 공백, 줄바꿈 등을 제거하고 보기 좋게 정리합니다.
-        """
-        
-        # 2. 여러 개의 쉼표를 하나로 변경 (예: ',,,')
-        cleaned = re.sub(r',+', ',', ingredients)
-        
-        # 3. 여러 개의 공백을 하나의 공백으로 변경
+        cleaned = ingredients.replace('\n', ',')
+        cleaned = re.sub(r',+', ',', cleaned)
         cleaned = re.sub(r'\s+', ' ', cleaned)
-        
-        # 4. '쉼표와 공백'이 반복되는 경우 정리 (예: ' , , ')
         cleaned = re.sub(r'(\s*,\s*)+', ', ', cleaned)
-
-            # 1. 줄바꿈 문자(\n)를 쉼표(,)로 변경
-        cleaned = cleaned.replace('\n', ' ')
-        
-        # 5. 양쪽 끝의 쉼표나 공백 제거
         return cleaned.strip(' ,')
 
-    def run(self, input_dir, output_filepath):
+    # --- 👇 여기가 핵심 수정 부분입니다! (run 메서드 전체 수정) 👇 ---
+    def run(self, input_dir, output_filepath, threshold=config.SIMILARITY_THRESHOLD):
+        # 1. 모든 JSON 파일 로드 및 병합
         json_files = glob.glob(os.path.join(input_dir, '*.json'))
         if not json_files:
             print(f"WARNING: '{input_dir}' 폴더에 JSON 파일이 없어 전처리를 건너뜁니다.")
             return False
         
-        print(f"INFO: 총 {len(json_files)}개의 JSON 파일에 대한 전처리를 시작합니다.")
-        
         all_recipes = []
         for file_path in json_files:
             try:
                 with open(file_path, 'r', encoding='utf-8') as f:
-                    data = json.load(f)
-                    if isinstance(data, list):
-                        all_recipes.extend(data)
+                    all_recipes.extend(json.load(f))
             except Exception as e:
                 print(f"WARNING: '{file_path}' 파일을 읽는 중 오류 발생: {e}")
-                continue
         
-        print(f"INFO: 총 {len(all_recipes)}개의 레시피를 불러왔습니다. 데이터 전처리를 시작합니다.")
-            
-        print(f"INFO: 총 {len(all_recipes)}개의 레시피 데이터 전처리를 시작합니다.")
+        print(f"INFO: 총 {len(all_recipes)}개의 레시피를 불러왔습니다. 이제 중복 제거를 시작합니다.")
+
+        # 2. 제목 유사도 기반 중복 제거
+        unique_recipes = []
+        removed_count = 0
         
-            # --- 👇 (중복 제거 로직) 👇 ---
-        processed_recipes_dict = {}
+        # 먼저 모든 레시피의 제목을 깨끗하게 정리
         for recipe in all_recipes:
-            if not isinstance(recipe, dict) or 'id' not in recipe:
-                continue
+            recipe['cleaned_title'] = self.clean_title(recipe.get('title', ''))
 
-            recipe_id = recipe['id']
+        for recipe in all_recipes:
+            is_duplicate = False
+            for unique_recipe in unique_recipes:
+                # 깨끗한 제목끼리 비교
+                sim_score = similarity(recipe['cleaned_title'], unique_recipe['cleaned_title'])
+                if sim_score > threshold:
+                    is_duplicate = True
+                    break
             
-            # 아직 추가되지 않은 레시피거나, 새로 들어온 레시피의 재료 정보가 더 풍부하면 덮어쓰기
-            if recipe_id not in processed_recipes_dict or len(recipe.get('ingredients', '')) > len(processed_recipes_dict[recipe_id].get('ingredients', '')):
-                processed_recipe = recipe.copy()
-                #processed_recipe['title'] = self.clean_title(recipe.get('title', ''))
-                processed_recipe['ingredients'] = self.clean_ingredients(recipe.get('ingredients', ''))
-                
-                title = processed_recipe['title']
-                ingredients = processed_recipe['ingredients']
-                steps = recipe.get('steps', '')
-                
-                combined_text = (f"요리 제목: {title}\n"
-                                 f"필요한 재료: {ingredients}\n"
-                                 f"만드는 법: {steps}")
-                processed_recipe['combined_text'] = combined_text
-                processed_recipes_dict[recipe_id] = processed_recipe
+            if not is_duplicate:
+                unique_recipes.append(recipe)
+        
+        removed_count = len(all_recipes) - len(unique_recipes)
+        print(f"INFO: 중복 제거 완료! {removed_count}개의 중복 레시피를 제거했습니다.")
+        print(f"INFO: 최종 {len(unique_recipes)}개의 고유한 레시피가 남았습니다.")
 
-        # 딕셔너리의 값들만 리스트로 변환하여 최종 결과물 생성
-        processed_recipes = list(processed_recipes_dict.values())
-        print(f"INFO: 중복 제거 후 총 {len(processed_recipes)}개의 고유한 레시피가 남았습니다.")
-        # -------------------------------------------------------------
+        # 3. 살아남은 고유 레시피들만 최종 손질 및 저장
+        final_processed_recipes = []
+        for recipe in unique_recipes:
+            # 재료 손질
+            recipe['ingredients'] = self.clean_ingredients(recipe.get('ingredients', ''))
+            
+            # 최종 제목은 원본 제목이 아닌 깨끗한 제목으로 저장
+            recipe['title'] = recipe['cleaned_title']
+
+            # combined_text 생성
+            combined_text = (f"요리 제목: {recipe['title']}\n"
+                             f"필요한 재료: {recipe['ingredients']}\n"
+                             f"만드는 법: {recipe.get('steps', '')}")
+            recipe['combined_text'] = combined_text
+
+            # 임시로 사용한 'cleaned_title' 키는 제거
+            del recipe['cleaned_title']
+            final_processed_recipes.append(recipe)
             
         os.makedirs(os.path.dirname(output_filepath), exist_ok=True)
         with open(output_filepath, 'w', encoding='utf-8') as f:
-            json.dump(processed_recipes, f, ensure_ascii=False, indent=4)
+            json.dump(final_processed_recipes, f, ensure_ascii=False, indent=4)
             
-        print(f"SUCCESS: 데이터 전처리 및 통합 완료! '{output_filepath}'에 저장했습니다.")
+        print(f"SUCCESS: 최종 데이터 처리 완료! '{output_filepath}'에 저장했습니다.")
         return True
-    
-        # processed_recipes = []
-        # for recipe in all_recipes:
-        #     if not isinstance(recipe, dict): continue # 레시피가 딕셔너리 형태가 아니면 건너뛰기
-                
-        #     processed_recipe = recipe.copy()
-        #     #processed_recipe['title'] = self.clean_title(recipe.get('title', ''))
-        #     processed_recipe['ingredients'] = self.clean_ingredients(recipe.get('ingredients', ''))
-            
-        #     title = processed_recipe['title']
-        #     ingredients = processed_recipe['ingredients']
-        #     steps = recipe.get('steps', '')
-            
-        #     combined_text = (f"요리 제목: {title}\n"
-        #                      f"필요한 재료: {ingredients}\n"
-        #                      f"만드는 법: {steps}")
-        #     processed_recipe['combined_text'] = combined_text
-        #     processed_recipes.append(processed_recipe)
-            
-        # # 전처리된 모든 레시피를 하나의 파일로 저장
-        # os.makedirs(os.path.dirname(output_filepath), exist_ok=True)
-        # with open(output_filepath, 'w', encoding='utf-8') as f:
-        #     json.dump(processed_recipes, f, ensure_ascii=False, indent=4)
-            
-        # print(f"SUCCESS: 데이터 전처리 및 통합 완료! '{output_filepath}'에 저장했습니다.")
-        # return True # 성공했음을 알리기 위해 True 반환

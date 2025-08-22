@@ -1,17 +1,19 @@
 # vector_store.py
 import json
 import os
-from langchain_community.vectorstores import Chroma
+import sys
+import pysqlite3
+# 내장 sqlite3 모듈을 pysqlite3로 덮어쓰기
+sys.modules["sqlite3"] = pysqlite3
+from langchain_chroma import Chroma
 #from langchain_openai import OpenAIEmbeddings
 from langchain_upstage import UpstageEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.docstore.document import Document
 from . import config
+import uuid # --- 추가된 부분 ---
+from langchain.storage import InMemoryStore # --- 추가된 부분 ---
 
-import sys
-import pysqlite3
-# 내장 sqlite3 모듈을 pysqlite3로 덮어쓰기
-sys.modules["sqlite3"] = pysqlite3
 
 
 class VectorStoreManager:
@@ -45,25 +47,37 @@ class VectorStoreManager:
             documents.append(doc)
         return documents
 
-    def build(self, json_path=config.MERGED_PREPROCESSED_FILE):
-        print("INFO: 벡터 DB 구축을 시작합니다...")
+    # --- 👇 여기가 핵심 수정 부분입니다! (DB 구축 로직 변경) 👇 ---
+    def build(self, docstore: InMemoryStore, json_path=config.MERGED_PREPROCESSED_FILE):
+        print("INFO: ParentDocumentRetriever용 벡터 DB 구축을 시작합니다...")
         
-        documents = self._load_documents_from_json(json_path)
-        if not documents:
-            print("ERROR: 벡터 DB를 구축할 문서가 없습니다. 크롤링 및 전처리를 먼저 실행하세요.")
+        parent_documents = self._load_documents_from_json(json_path)
+        if not parent_documents:
+            print("ERROR: 벡터 DB를 구축할 문서가 없습니다.")
             return None
 
-        # 다양하게 chunking 방법을 달리하여 QA성능을 높여주세요! -> 여기서 조절
-        text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-        splits = text_splitter.split_documents(documents)
+        # 부모 문서(원본 레시피)에 고유 ID를 부여하고 docstore에 저장
+        doc_ids = [str(uuid.uuid4()) for _ in parent_documents]
+        docstore.mset(list(zip(doc_ids, parent_documents)))
+
+        # 자식 문서(잘게 쪼갠 조각) 생성
+        child_splitter = RecursiveCharacterTextSplitter(chunk_size=400)
+        child_documents = []
+        for i, doc in enumerate(parent_documents):
+            _id = doc_ids[i]
+            splits = child_splitter.split_documents([doc])
+            for _doc in splits:
+                # 자식 문서의 메타데이터에 부모 문서의 ID를 연결!
+                _doc.metadata["doc_id"] = _id
+            child_documents.extend(splits)
         
-        print(f"INFO: 총 {len(documents)}개의 문서를 {len(splits)}개의 청크로 분할했습니다.")
-        
-        # --- 수정: DB 구축 시에는 'passage' 문서용 임베딩 모델 사용 ---
-        print("INFO: 'passage' 모델로 문서 임베딩 및 DB 저장을 진행합니다.")
+        print(f"INFO: 총 {len(parent_documents)}개의 부모 문서를 {len(child_documents)}개의 자식 청크로 분할했습니다.")
+        print("INFO: 'passage' 모델로 자식 청크 임베딩 및 DB 저장을 진행합니다.")
+
+        # 자식 문서를 벡터DB에 저장 (Langchain의 from_documents는 자동 배치 처리 기능이 있음)
         vectorstore = Chroma.from_documents(
-            documents=splits,
-            embedding=self.doc_embedding, # 👈 문서용 모델 사용
+            documents=child_documents,
+            embedding=self.doc_embedding,
             persist_directory=self.persist_directory
         )
         print(f"SUCCESS: 벡터 DB 구축 완료. '{self.persist_directory}'에 저장되었습니다.")

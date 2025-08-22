@@ -2,32 +2,26 @@
 from langchain.retrievers import ParentDocumentRetriever
 from langchain.storage import InMemoryStore
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from .vector_store import VectorStoreManager
+#from .vector_store import VectorStoreManager
 
 class AdvancedRetriever:
     """
     ParentDocumentRetriever를 사용하여 향상된 검색 기능을 제공하는 클래스.
     """
-    def __init__(self, vectorstore):
+    # --- 수정된 부분: __init__에서 store를 받도록 변경 ---
+    def __init__(self, vectorstore, store):
         self.vectorstore = vectorstore
-        self.store = InMemoryStore() # 부모 문서를 저장할 공간
+        self.store = store # 부모 문서를 저장할 공간
 
-    def get_retriever(self, parent_splitter_chunk_size=2000, child_splitter_chunk_size=400):
-        # 큰 청크로 나눌 스플리터 (부모 청크)
-        parent_splitter = RecursiveCharacterTextSplitter(chunk_size=parent_splitter_chunk_size)
-        # 작은 청크로 나눌 스플리터 (자식 청크, 검색에 사용)
-        child_splitter = RecursiveCharacterTextSplitter(chunk_size=child_splitter_chunk_size)
+    def get_retriever(self):
+        # 자식 청크는 DB 구축 시 이미 생성되었으므로 여기서는 splitter 정의가 필요 없음
+        # 하지만 retriever 객체는 구조상 splitter를 필요로 하므로 형식적으로 정의
+        child_splitter = RecursiveCharacterTextSplitter(chunk_size=400)
         
-        # ParentDocumentRetriever 설정
-        # 작은 청크로 검색하고, 결과로는 부모 청크를 반환하여 LLM에 더 많은 맥락을 제공
         retriever = ParentDocumentRetriever(
             vectorstore=self.vectorstore,
             docstore=self.store,
             child_splitter=child_splitter,
-            parent_splitter=parent_splitter,
+            # parent_splitter는 add_documents시에만 사용되므로 여기서는 불필요
         )
-        
-        # 여기서 retriever에 문서를 추가해줘야 합니다.
-        # main.py에서 VectorStoreManager의 문서를 가져와 추가합니다.
-        
         return retriever
