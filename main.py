@@ -8,11 +8,7 @@ from modules.preprocess import DataPreprocessor
 from modules.vector_store import VectorStoreManager
 from modules.retriever import AdvancedRetriever
 from modules.llm_handler import LLMHandler
-# -------------------------------------------------------------
-import sys
-import pysqlite3
-# 내장 sqlite3 모듈을 pysqlite3로 덮어쓰기
-sys.modules["sqlite3"] = pysqlite3
+from langchain.storage import InMemoryStore # --- 추가된 부분 ---
 
 # --- 추가/수정된 부분 ---
 def main(rebuild_db: bool, until_step: str):
@@ -58,31 +54,38 @@ def main(rebuild_db: bool, until_step: str):
 
     # --- 이하 코드는 until_step == 'run' 일 때만 실행됩니다. ---
     
-    # 3. 벡터 DB 구축 또는 로드
+     # 3. 벡터 DB 구축 또는 로드
     print("\n--- 3. 벡터 DB 준비 시작 ---")
     vs_manager = VectorStoreManager()
     
+    # --- 수정된 부분: DB 구축 시 ParentDocumentRetriever를 위한 준비를 함께 진행 ---
+    docstore = InMemoryStore() # 부모 문서를 메모리에 저장할 공간 생성
+
     if rebuild_db or not os.path.exists(config.CHROMA_DB_PATH):
         if rebuild_db: print("INFO: --rebuild-db 옵션에 따라 DB를 새로 구축합니다.")
-        vectorstore = vs_manager.build(json_path=config.MERGED_PREPROCESSED_FILE)
+        # build 함수에 docstore를 넘겨주어 부모-자식 문서를 함께 처리하도록 함
+        vectorstore = vs_manager.build(docstore=docstore, json_path=config.MERGED_PREPROCESSED_FILE)
     else:
+        # DB를 로드할 때는, 원본 문서를 읽어와서 docstore를 채워줘야 함
+        # (InMemoryStore는 휘발성이므로 프로그램을 켤 때마다 채워야 함)
         vectorstore = vs_manager.load()
-    
+        parent_documents = vs_manager._load_documents_from_json(config.MERGED_PREPROCESSED_FILE)
+        doc_ids = [doc.metadata.get("id", str(i)) for i, doc in enumerate(parent_documents)] # 간단한 ID 생성
+        docstore.mset(list(zip(doc_ids, parent_documents)))
+
+
     if not vectorstore:
         print("CRITICAL: 벡터 DB 준비에 실패하여 프로그램을 종료합니다.")
         return
 
     # 4. Advanced RAG 리트리버 설정
     print("\n--- 4. RAG 리트리버 설정 ---")
-    docs_for_retriever = vs_manager._load_documents_from_json(config.MERGED_PREPROCESSED_FILE)
-    adv_retriever = AdvancedRetriever(vectorstore)
+    # --- 수정된 부분: retriever에 docstore를 넘겨주고, add_documents 호출 삭제! ---
+    adv_retriever = AdvancedRetriever(vectorstore, docstore)
     retriever = adv_retriever.get_retriever()
-    if docs_for_retriever:
-        retriever.add_documents(docs_for_retriever)
-        print("INFO: ParentDocumentRetriever 설정 완료.")
-    else:
-        print("WARNING: 리트리버에 추가할 문서가 없습니다.")
-
+    print("INFO: ParentDocumentRetriever 설정 완료.")
+    # retriever.add_documents(docs_for_retriever) # 👈 문제가 됐던 이 라인을 삭제!
+    
     # 5. LLM 핸들러 및 RAG 체인 생성
     print("\n--- 5. QA 엔진(LLM) 초기화 ---")
     llm_handler = LLMHandler(retriever=retriever)
@@ -133,3 +136,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
     
     main(rebuild_db=args.rebuild_db, until_step=args.until_step)
+
+
+# 가상환경 활성화 source myenv/bin/activate
