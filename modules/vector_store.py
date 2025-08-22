@@ -1,17 +1,18 @@
 # vector_store.py
+# vector_store.py
 import json
 import os
-from langchain_community.vectorstores import Chroma
+import sys
+import pysqlite3
+# 내장 sqlite3 모듈을 pysqlite3로 덮어쓰기
+sys.modules["sqlite3"] = pysqlite3
+from langchain_chroma import Chroma
 #from langchain_openai import OpenAIEmbeddings
 from langchain_upstage import UpstageEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.docstore.document import Document
 from . import config
 
-import sys
-import pysqlite3
-# 내장 sqlite3 모듈을 pysqlite3로 덮어쓰기
-sys.modules["sqlite3"] = pysqlite3
 
 
 class VectorStoreManager:
