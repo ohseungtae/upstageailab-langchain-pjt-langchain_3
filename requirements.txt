@@ -1,0 +1,12 @@
+# requirements.txt
+python-dotenv
+requests
+beautifulsoup4
+langchain
+langchain-openai
+langchain-upstage
+langchain-community
+chromadb
+tiktoken
+langsmith
+pysqlite3-binary
