@@ -1,0 +1,28 @@
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environment folders
+myenv/
+venv/
+.venv/
+
+# Secrets file - VERY IMPORTANT!
+# API 키가 들어있는 .env 파일은 절대 올리면 안됩니다.
+.env
+
+# Local database and data files
+# 이 파일들은 각자 환경에서 생성하는 것이므로 저장소에 올리지 않습니다.
+chroma_db/
+#crawled_data/
+#preprocessed_data/
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# IDE-specific files
+.idea/
+.vscode/
