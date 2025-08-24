@@ -2,9 +2,9 @@
 import json
 import os
 import sys
-import pysqlite3
+import sqlite3
 # 내장 sqlite3 모듈을 pysqlite3로 덮어쓰기
-sys.modules["sqlite3"] = pysqlite3
+sys.modules["sqlite3"] = sqlite3
 from langchain_chroma import Chroma
 #from langchain_openai import OpenAIEmbeddings
 from langchain_upstage import UpstageEmbeddings
