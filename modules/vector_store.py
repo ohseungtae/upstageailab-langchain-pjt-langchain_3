@@ -5,7 +5,7 @@ import sys
 import sqlite3
 # 내장 sqlite3 모듈을 pysqlite3로 덮어쓰기
 sys.modules["sqlite3"] = sqlite3
-from langchain_chroma import Chroma
+from langchain_community.vectorstores import Chroma
 #from langchain_openai import OpenAIEmbeddings
 from langchain_upstage import UpstageEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -13,7 +13,6 @@ from langchain.docstore.document import Document
 from . import config
 import uuid # --- 추가된 부분 ---
 from langchain.storage import InMemoryStore # --- 추가된 부분 ---
-
 
 
 class VectorStoreManager:
@@ -58,6 +57,9 @@ class VectorStoreManager:
 
         # 부모 문서(원본 레시피)에 고유 ID를 부여하고 docstore에 저장
         doc_ids = [str(uuid.uuid4()) for _ in parent_documents]
+        for i, doc in enumerate(parent_documents):
+            doc.metadata["doc_id"] = doc_ids[i] # ✅ 부모 메타데이터에도 기록!
+        # docstore에 "doc_id" : doc 저장
         docstore.mset(list(zip(doc_ids, parent_documents)))
 
         # 자식 문서(잘게 쪼갠 조각) 생성

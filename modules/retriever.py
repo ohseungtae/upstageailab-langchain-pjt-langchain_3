@@ -22,6 +22,7 @@ class AdvancedRetriever:
             vectorstore=self.vectorstore,
             docstore=self.store,
             child_splitter=child_splitter,
+            id_key="doc_id"
             # parent_splitter는 add_documents시에만 사용되므로 여기서는 불필요
         )
         return retriever
