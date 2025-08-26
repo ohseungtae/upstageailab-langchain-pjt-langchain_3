@@ -42,6 +42,7 @@ st.markdown("""
     .bot-message {
         background-color: #FFF3E0;
         border-left: 4px solid #FF9800;
+        font-size: 1.5rem;
     }
     .sidebar-info {
         background-color: #F5F5F5;
