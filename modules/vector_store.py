@@ -5,15 +5,15 @@ import sys
 import sqlite3
 # 내장 sqlite3 모듈을 pysqlite3로 덮어쓰기
 sys.modules["sqlite3"] = sqlite3
-from langchain_community.vectorstores import Chroma
+from langchain_chroma import Chroma
 #from langchain_openai import OpenAIEmbeddings
 from langchain_upstage import UpstageEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.docstore.document import Document
-from . import config
-import uuid # --- 추가된 부분 ---
 from langchain.storage import InMemoryStore # --- 추가된 부분 ---
 
+from . import config
+from .utils_docstore import compute_doc_id, register_parent_docs, make_child_chunks
 
 class VectorStoreManager:
     """
@@ -23,7 +23,6 @@ class VectorStoreManager:
         self.persist_directory = persist_directory
         self.doc_embedding = UpstageEmbeddings(model="solar-embedding-1-large-passage", api_key=config.UPSTAGE_API_KEY)
         self.query_embedding = UpstageEmbeddings(model="solar-embedding-1-large-query", api_key=config.UPSTAGE_API_KEY)
-
     
     def _load_documents_from_json(self, json_path):
         if not os.path.exists(json_path):
@@ -56,22 +55,9 @@ class VectorStoreManager:
             return None
 
         # 부모 문서(원본 레시피)에 고유 ID를 부여하고 docstore에 저장
-        doc_ids = [str(uuid.uuid4()) for _ in parent_documents]
-        for i, doc in enumerate(parent_documents):
-            doc.metadata["doc_id"] = doc_ids[i] # ✅ 부모 메타데이터에도 기록!
-        # docstore에 "doc_id" : doc 저장
-        docstore.mset(list(zip(doc_ids, parent_documents)))
-
+        register_parent_docs(docstore, parent_documents)
         # 자식 문서(잘게 쪼갠 조각) 생성
-        child_splitter = RecursiveCharacterTextSplitter(chunk_size=400)
-        child_documents = []
-        for i, doc in enumerate(parent_documents):
-            _id = doc_ids[i]
-            splits = child_splitter.split_documents([doc])
-            for _doc in splits:
-                # 자식 문서의 메타데이터에 부모 문서의 ID를 연결!
-                _doc.metadata["doc_id"] = _id
-            child_documents.extend(splits)
+        child_documents = make_child_chunks(parent_documents, chunk_size=400, chunk_overlap=60)
         
         print(f"INFO: 총 {len(parent_documents)}개의 부모 문서를 {len(child_documents)}개의 자식 청크로 분할했습니다.")
         print("INFO: 'passage' 모델로 자식 청크 임베딩 및 DB 저장을 진행합니다.")
