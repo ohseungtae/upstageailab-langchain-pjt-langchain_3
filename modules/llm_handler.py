@@ -1,6 +1,6 @@
 # llm_handler.py
 from langchain_openai import ChatOpenAI
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder, PromptTemplate
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain.chains import create_history_aware_retriever, create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
@@ -89,9 +89,18 @@ class LLMHandler:
                 ("human", "{input}"),
             ]
         )
-        
+        # 3-1) 문서 포맷 프롬프트: 각 문서가 {context}로 들어가기 전에 제목/URL을 함께 보여줌
+        # Document.metadata에 들어있는 key는 템플릿 변수로 그대로 사용 가능(title, url 등)
+        document_prompt = PromptTemplate(
+            input_variables=["page_content", "title", "url"],
+            template=(
+                "제목: {title}\n"
+                "URL: {url}\n"
+                "{page_content}"
+            ),
+        )
         # 4. 문서(레시피)와 질문 -> 답변 생성 체인
-        question_answer_chain = create_stuff_documents_chain(self.llm, qa_prompt)
+        question_answer_chain = create_stuff_documents_chain(self.llm, qa_prompt,document_prompt=document_prompt)  # ✅ LLM이 진짜 URL을 본다)
 
         # 5. 위 두 체인을 결합하여 최종 RAG 체인 생성
         rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain)

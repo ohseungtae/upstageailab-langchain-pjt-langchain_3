@@ -10,6 +10,9 @@ from modules import config
 from modules.vector_store import VectorStoreManager
 from modules.retriever import AdvancedRetriever
 from modules.llm_handler import LLMHandler
+# main.py와 동일한 방법으로 docstore를 채우기 위해 import 합니다.
+from modules.utils_docstore import register_parent_docs
+
 from langchain.storage import InMemoryStore
 
 # Page configuration
@@ -74,8 +77,9 @@ def initialize_qa_system():
             # Initialize docstore and load parent documents
             docstore = InMemoryStore()
             parent_documents = vs_manager._load_documents_from_json(config.MERGED_PREPROCESSED_FILE)
-            doc_ids = [doc.metadata.get("id", str(i)) for i, doc in enumerate(parent_documents)]
-            docstore.mset(list(zip(doc_ids, parent_documents)))
+            #doc_ids = [doc.metadata.get("id", str(i)) for i, doc in enumerate(parent_documents)]
+            #docstore.mset(list(zip(doc_ids, parent_documents)))
+            register_parent_docs(docstore, parent_documents) # 이 코드로 대체
             
             # Initialize retriever
             adv_retriever = AdvancedRetriever(vectorstore, docstore)
