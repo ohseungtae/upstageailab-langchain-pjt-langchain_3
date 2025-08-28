@@ -11,10 +11,12 @@ class LLMHandler:
     """
     LLM 모델을 초기화하고, RAG 체인을 구성하며, 대화 기록을 관리하는 클래스.
     """
-    def __init__(self, retriever):
+    def __init__(self, retriever, api_key=None):
         # Solar 모델을 사용하고 싶으면 model_name을 변경
         #self.llm = ChatOpenAI(model_name="gpt-4o-mini", temperature=0.2, api_key=config.OPENAI_API_KEY)
-        self.llm = ChatUpstage(model_name="solar-pro2", temperature=0.2,api_key=config.UPSTAGE_API_KEY)     
+        #self.llm = ChatUpstage(model_name="solar-pro2", temperature=0.2, api_key=upstage_api_key)
+        upstage_api_key = api_key if api_key else config.UPSTAGE_API_KEY
+        self.llm = ChatUpstage(model_name="solar-pro2", temperature=0.2, api_key=upstage_api_key)     
         self.retriever = retriever
         self.chat_history_store = {} # 세션별 대화 기록 저장
 
