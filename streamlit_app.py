@@ -67,7 +67,7 @@ def initialize_qa_system(api_key):
                 st.stop()
             
             # Initialize vector store manager
-            vs_manager = VectorStoreManager()
+            vs_manager = VectorStoreManager(api_keys=api_key)
             vectorstore = vs_manager.load()
             
             if not vectorstore:

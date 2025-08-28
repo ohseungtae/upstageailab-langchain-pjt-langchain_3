@@ -19,10 +19,11 @@ class VectorStoreManager:
     """
     전처리된 데이터를 로드하여 벡터 DB를 구축하고 관리하는 클래스.
     """
-    def __init__(self, persist_directory=config.CHROMA_DB_PATH):
+    def __init__(self, persist_directory=config.CHROMA_DB_PATH,api_keys=None):
+        upstage_api_key = api_keys if api_keys else config.UPSTAGE_API_KEY
         self.persist_directory = persist_directory
-        self.doc_embedding = UpstageEmbeddings(model="solar-embedding-1-large-passage", api_key=config.UPSTAGE_API_KEY)
-        self.query_embedding = UpstageEmbeddings(model="solar-embedding-1-large-query", api_key=config.UPSTAGE_API_KEY)
+        self.doc_embedding = UpstageEmbeddings(model="solar-embedding-1-large-passage", api_key=upstage_api_key)
+        self.query_embedding = UpstageEmbeddings(model="solar-embedding-1-large-query", api_key=upstage_api_key)
     
     def _load_documents_from_json(self, json_path):
         if not os.path.exists(json_path):
