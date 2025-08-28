@@ -57,7 +57,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 @st.cache_resource
-def initialize_qa_system():
+def initialize_qa_system(api_key):
     """Initialize the QA system (cached to avoid reloading)"""
     try:
         with st.spinner("🔄 QA 시스템을 초기화하고 있습니다..."):
@@ -86,7 +86,7 @@ def initialize_qa_system():
             retriever = adv_retriever.get_retriever()
             
             # Initialize LLM handler and create QA chain
-            llm_handler = LLMHandler(retriever=retriever)
+            llm_handler = LLMHandler(retriever=retriever, api_key=api_key)
             qa_chain = llm_handler.create_rag_chain()
             
             return qa_chain, llm_handler
@@ -102,6 +102,18 @@ def main():
     
     # Sidebar
     with st.sidebar:
+        st.markdown("### 🔑 API 설정")
+        api_key = st.text_input(
+            "Upstage API Key를 입력하세요:",
+            type="password",
+            placeholder="Enter your Upstage API key",
+            help="Upstage API 키가 필요합니다. https://console.upstage.ai에서 발급받으세요."
+        )
+        
+        if not api_key:
+            st.warning("⚠️ API 키를 입력해주세요.")
+            st.stop()
+        
         st.markdown("### 📋 사용 방법")
         st.markdown("""
         <div class="sidebar-info" style="color: black;">
@@ -134,7 +146,7 @@ def main():
             st.rerun()
     
     # Initialize QA system
-    qa_chain, llm_handler = initialize_qa_system()
+    qa_chain, llm_handler = initialize_qa_system(api_key)
     
     # Initialize session state
     if 'messages' not in st.session_state:
