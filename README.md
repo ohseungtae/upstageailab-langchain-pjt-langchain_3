@@ -202,12 +202,12 @@ flowchart TD
     G --> M
     H --> N
     
-    style A fill:#e1f5fe,stroke:#333,stroke-width:2px
-    style J fill:#e8f5e8,stroke:#333,stroke-width:2px
-    style G fill:#f3e5f5,stroke:#333,stroke-width:2px
-    style H fill:#f3e5f5,stroke:#333,stroke-width:2px
-    style Q fill:#fff3e0,stroke:#333,stroke-width:2px
-    style P fill:#fce4ec,stroke:#333,stroke-width:2px
+    style A fill:#1e88e5,stroke:#ffffff,stroke-width:3px,color:#ffffff
+    style J fill:#43a047,stroke:#ffffff,stroke-width:3px,color:#ffffff
+    style G fill:#8e24aa,stroke:#ffffff,stroke-width:3px,color:#ffffff
+    style H fill:#8e24aa,stroke:#ffffff,stroke-width:3px,color:#ffffff
+    style Q fill:#ff6f00,stroke:#ffffff,stroke-width:3px,color:#ffffff
+    style P fill:#e91e63,stroke:#ffffff,stroke-width:3px,color:#ffffff
 ```
 <br>
 
