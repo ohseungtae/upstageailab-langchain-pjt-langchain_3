@@ -6,7 +6,7 @@
 ### <프로젝트 소개>
 
 
--'만개의 레시피' 사이트에서 백종원 쉐프의 레시피를 기반으로 한 한국어 RAG 질의응답 어시스턴트입니다.
+- '만개의 레시피' 사이트에서 백종원 쉐프의 레시피를 기반으로 한 한국어 RAG 질의응답 어시스턴트입니다.
 - Streamlit WebUI에서 대화형으로 질문하고 사용자의 요리 질문에 백종원 쉐프의 말투로 답변하는 QA 봇입니다.
 
 ### <챗봇 소개>
@@ -169,6 +169,46 @@ python main.py evaluate
 ├── .gitignore
 ├── requirements.txt          # 프로젝트 의존성 라이브러리
 └── main.py                   # ✨ 프로젝트 실행을 위한 단일 진입점
+```
+
+<br>
+
+## 📊 RAG 시스템 아키텍처
+
+이 프로젝트는 **데이터 준비(Indexing)**와 **RAG 실행(Inference)**의 두 가지 파이프라인으로 구성됩니다.
+
+```mermaid
+flowchart TD
+    subgraph "1. 데이터 준비 (Indexing Pipeline)"
+        direction LR
+        A["'만개의 레시피' 웹사이트"] -->|crawler.py| B[크롤링 데이터<br/>(JSON 파일들)]
+        B -->|preprocess.py| C[전처리 & 중복제거<br/>(단일 JSON 파일)]
+        C -->|vector_store.py| D{Parent-Child<br/>청킹}
+        D -->|Parent| E[부모 문서<br/>(원본 레시피)]
+        D -->|Child| F[자식 청크<br/>(분할된 조각)]
+        F -->|Upstage Passage Embedding| G[Chroma 벡터 저장소]
+        E --> H[InMemory Docstore]
+    end
+
+    subgraph "2. RAG 실행 (Inference Pipeline)"
+        direction TD
+        J[사용자 질문] --> K{대화기록 기반<br/>질문 재구성}
+        K --> L[질문 임베딩<br/>(Upstage Query Embedding)]
+        L --> M{유사도 검색<br/>(Similarity Search)}
+        G --> M
+        H --> N
+        M -->|Top-k 자식 청크 ID| N[ParentDocumentRetriever]
+        N -->|부모 문서 (컨텍스트)| O[프롬프트 템플릿<br/>(백종원 페르소나)]
+        O --> P[Upstage Chat API<br/>(solar-pro2)]
+        P --> Q[백종원 말투 답변 생성]
+    end
+
+    style A fill:#e1f5fe,stroke:#333,stroke-width:2px
+    style J fill:#e8f5e8,stroke:#333,stroke-width:2px
+    style G fill:#f3e5f5,stroke:#333,stroke-width:2px
+    style H fill:#f3e5f5,stroke:#333,stroke-width:2px
+    style Q fill:#fff3e0,stroke:#333,stroke-width:2px
+    style P fill:#fce4ec,stroke:#333,stroke-width:2px
 ```
 
 <br>
