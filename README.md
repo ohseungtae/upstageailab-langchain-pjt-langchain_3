@@ -181,7 +181,7 @@ python main.py evaluate
 flowchart TD
     subgraph "1. 데이터 준비 (Indexing Pipeline)"
         direction LR
-        A["'만개의 레시피' 웹사이트"] -->|crawler.py| B[크롤링 데이터<br/>(JSON 파일들)]
+        A["만개의 레시피 웹사이트"] -->|crawler.py| B[크롤링 데이터<br/>(JSON 파일들)]
         B -->|preprocess.py| C[전처리 & 중복제거<br/>(단일 JSON 파일)]
         C -->|vector_store.py| D{Parent-Child<br/>청킹}
         D -->|Parent| E[부모 문서<br/>(원본 레시피)]
