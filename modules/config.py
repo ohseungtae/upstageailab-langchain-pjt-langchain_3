@@ -14,7 +14,7 @@ UPSTAGE_API_KEY = os.getenv("UPSTAGE_API_KEY")
 CRAWLED_DATA_DIR = os.path.join(project_root, "crawled_data")
 PREPROCESSED_DATA_DIR = os.path.join(project_root, "preprocessed_data")
 MERGED_PREPROCESSED_FILE = os.path.join(PREPROCESSED_DATA_DIR, "all_recipes_cleaned.json")
-CHROMA_DB_PATH = os.path.join(project_root, "chroma_db")
+CHROMA_DB_PATH = os.path.join(project_root, "chroma_db_recursive")
 
 # --- 추가된 부분: 중복 제거를 위한 유사도 임계값 ---
 # 0.0 (완전 다름) ~ 1.0 (완전 같음). 0.75는 "꽤 비슷하면 중복으로 보자"는 뜻.
