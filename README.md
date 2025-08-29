@@ -178,6 +178,7 @@ python main.py evaluate
 이 프로젝트는 **데이터 준비(Indexing)**와 **RAG 실행(Inference)**의 두 가지 파이프라인으로 구성됩니다.
 
 ```mermaid
+
 flowchart TD
     subgraph indexing ["1. 데이터 준비 (Indexing Pipeline)"]
         A["만개의 레시피 웹사이트"] -->|crawler.py| B["크롤링 데이터<br/>(JSON 파일들)"]
@@ -193,8 +194,8 @@ flowchart TD
         J["사용자 질문"] --> K{"대화기록 기반<br/>질문 재구성"}
         K --> L["질문 임베딩<br/>(Upstage Query Embedding)"]
         L --> M{"유사도 검색<br/>(Similarity Search)"}
-        M -->|Top-k 자식 청크 ID| N["ParentDocumentRetriever"]
-        N -->|"부모 문서 (컨텍스트)"| O["프롬프트 템플릿<br/>(백종원 페르소나)"]
+        M -->|Top-k 3 청크 ID| N["Hybrid Retriever<br/>Dense + BM25 + CE Rerank"]
+        N -->|부모 문서 컨텍스트| O["프롬프트 템플릿<br/>(백종원 페르소나)"]
         O --> P["Upstage Chat API<br/>(solar-pro2)"]
         P --> Q["백종원 말투 답변 생성"]
     end
