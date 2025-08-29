@@ -177,6 +177,8 @@ python main.py evaluate
 
 이 프로젝트는 **데이터 준비(Indexing)**와 **RAG 실행(Inference)**의 두 가지 파이프라인으로 구성됩니다.
 
+<img width="1045" height="653" alt="Image" src="https://github.com/user-attachments/assets/47961fbb-af76-432e-b2e4-d86c9119d115" />
+
 ```mermaid
 
 flowchart TD
@@ -212,54 +214,6 @@ flowchart TD
 ```
 <br>
 
-```mermaid
-flowchart LR
-
-    %% ---------------------------
-    %% Indexing Pipeline (위쪽)
-    %% ---------------------------
-    subgraph indexing ["1. 데이터 준비 (Indexing Pipeline)"]
-        A["만개의 레시피 웹사이트"] -->|crawler.py| B["크롤링 데이터<br/>(JSON 파일들)"]
-        B -->|preprocess.py| C["전처리 & 중복제거<br/>(단일 JSON 파일)"]
-        C -->|vector_store.py| D{"Parent-Child<br/>청킹"}
-        D -->|Parent| E["부모 문서<br/>(원본 레시피)"]
-        D -->|Child| F["자식 청크<br/>(분할된 조각)"]
-        F -->|Upstage Passage Embedding| G["Chroma 벡터 저장소"]
-        E --> H["InMemory Docstore"]
-    end
-
-    %% ---------------------------
-    %% Inference Pipeline (아래쪽)
-    %% ---------------------------
-    subgraph inference ["2. RAG 실행 (Inference Pipeline)"]
-        J["사용자 질문"] --> K{"대화기록 기반<br/>질문 재구성"}
-        K --> L["질문 임베딩<br/>(Upstage Query Embedding)"]
-        L --> M{"유사도 검색<br/>(Similarity Search)"}
-        M -->|Top-k 자식 청크 ID| N["ParentDocumentRetriever"]
-        N -->|"부모 문서 (컨텍스트)"| O["프롬프트 템플릿<br/>(백종원 페르소나)"]
-        O --> P["Upstage Chat API<br/>(solar-pro2)"]
-        P --> Q["백종원 말투 답변 생성"]
-    end
-
-    %% ---------------------------
-    %% Cross connections
-    %% ---------------------------
-    G --> M
-    H --> N
-
-    %% ---------------------------
-    %% 스타일 지정
-    %% ---------------------------
-    style A fill:#1e88e5,stroke:#ffffff,stroke-width:3px,color:#ffffff
-    style J fill:#43a047,stroke:#ffffff,stroke-width:3px,color:#ffffff
-    style G fill:#8e24aa,stroke:#ffffff,stroke-width:3px,color:#ffffff
-    style H fill:#8e24aa,stroke:#ffffff,stroke-width:3px,color:#ffffff
-    style Q fill:#ff6f00,stroke:#ffffff,stroke-width:3px,color:#ffffff
-    style P fill:#e91e63,stroke:#ffffff,stroke-width:3px,color:#ffffff
-```
-
-<br>
-
 ## ✨ 프로젝트 핵심 기능
 
 -   **데이터 수집**: 특정 키워드("백종원")로 레시피를 검색하여 동적으로 크롤링
@@ -279,31 +233,6 @@ flowchart LR
 
 <br>
 
-## 📊 프로젝트 워크플로우
-
-이 프로젝트는 다음과 같은 단계로 진행됩니다. 각 단계는 `main.py`의 명령어를 통해 실행할 수 있습니다.
-
-1.  **데이터 수집 (Crawling)**
-    * `main.py prepare-data` 실행 시 `crawler.py`가 '만개의 레시피' 사이트에서 '백종원' 키워드로 검색된 레시피의 제목, 재료, 조리 절차, 원문 URL을 수집하여 `data/crawled/` 폴더에 JSON 파일로 저장합니다.
-
-2.  **데이터 전처리 (Preprocessing)**
-    * `preprocess.py`가 크롤링된 모든 JSON 파일을 읽어옵니다.
-    * 레시피 제목에서 '백종원', '만들기' 등 불필요한 키워드를 제거하고, 재료 목록을 일관된 형식으로 정리합니다.
-    * **제목 유사도**를 비교하여 중복된 레시피를 제거하고, 정제된 데이터를 `data/preprocessed/all_recipes_cleaned.json` 단일 파일로 통합 저장합니다.
-
-3.  **벡터 DB 구축 (Vector DB Indexing)**
-    * `vector_store.py`가 전처리된 JSON 파일을 로드하여 LangChain의 `Document` 객체로 변환합니다.
-    * **Parent-Child 청킹**: 각 레시피(부모 문서)를 검색에 용이하도록 작은 조각(자식 청크)으로 분할합니다.
-    * Upstage의 `solar-embedding-1-large-passage` 모델을 사용하여 자식 청크들을 임베딩하고, ChromaDB 벡터 저장소(`chroma_db/`)에 인덱싱합니다.
-
-4.  **RAG 파이프라인 실행 (QA & Evaluation)**
-    * `main.py app` 또는 `main.py evaluate` 실행 시 `pipeline.py`가 RAG 시스템을 초기화합니다.
-    * 사용자 질문이 들어오면, `solar-embedding-1-large-query` 모델로 질문을 임베딩하여 벡터 DB에서 가장 유사한 레시피 조각(자식 청크)들을 검색합니다.
-    * `ParentDocumentRetriever`가 검색된 자식 청크에 해당하는 원본 레시피(부모 문서) 전체를 LLM에 전달합니다.
-    * `llm_handler.py`에 정의된 시스템 프롬프트(백종원 페르소나)와 검색된 레시피 정보를 바탕으로, Upstage `solar-pro2` 모델이 최종 답변을 생성합니다.
-
-<br>
-
 ## 🛠️ 기술 상세 설명
 
 ### 1. 데이터 수집 및 전처리
@@ -314,9 +243,18 @@ flowchart LR
 ### 2. RAG 아키텍처
 
 * **임베딩 모델**: 문서(레시피) 임베딩에는 **passage용 모델**(`solar-embedding-1-large-passage`)을, 사용자 질문 임베딩에는 **query용 모델**(`solar-embedding-1-large-query`)을 사용하여 각 목적에 최적화된 성능을 추구했습니다.
-* **`ParentDocumentRetriever`**: 검색 정확도와 답변 품질을 모두 높이기 위해 이 전략을 채택했습니다.
-    * **검색 단계**: 작고 의미가 집중된 **자식 청크**를 벡터 검색하여, 사용자의 구체적인 질문(예: "돼지고기 먼저 볶아야 하나요?")과 관련된 부분을 정확히 찾아냅니다.
-    * **답변 생성 단계**: 검색된 자식 청크의 **부모 문서(원본 레시피 전체)**를 LLM에 전달합니다. 이를 통해 LLM은 단편적인 정보가 아닌, 레시피의 전체 맥락(모든 재료, 전체 조리 과정, 팁 등)을 이해하고 풍부하고 완전한 답변을 생성할 수 있습니다.
+* **create_history_aware_retriever**: Langchain에서 제공하는 기술로 , LLM이 사용자의 질문을 이전 대화 기록(MessagesPlaceholder)을 참고해서 질문을 재구성합니다.
+* **`Retriever: (Dense + BM25) Hybrid RRF + CE Rerank`**  
+  - Dense 검색(의미 기반) + BM25(키워드 기반) 검색의 두 결과를 결합합니다.  
+  - 그 결과(자식 청크)에 대해 CE Reranker가 질문과 문서 간 관계성을 점수화하여 다시 랭킹을 매깁니다.  
+
+    * **검색 단계**: 작고 의미가 집중된 **자식 청크**를 벡터 검색하여,  
+      사용자의 구체적인 질문(예: *"돼지고기 먼저 볶아야 하나요?"*)과 관련된 부분을 정확히 찾아냅니다.  
+
+    * **답변 생성 단계**: 랭킹된 자식 청크 중 상위 3개(k=3)의 **부모 문서(원본 레시피 전체)**를 LLM에 전달합니다.  
+      이를 통해 LLM은 단편적인 정보가 아닌, **레시피 전체 맥락**(모든 재료, 전체 조리 과정, 팁 등)을 참고하여  
+      풍부하고 완전한 답변을 생성할 수 있습니다.
+* **RunnableWithMessageHistory**: 대화 기록을 세션별로 유지합니다.
 
 ### 3. 프롬프트 엔지니어링 (페르소나 적용)
 
@@ -343,15 +281,10 @@ flowchart LR
 
 <br>
 
-## 📌 프로젝트 회고
-### 멤버별 소감
-
-#### 오승태
-- 
-#### 홍상호
-- 
-#### 이경도
-- 
-#### 김재훈
-- 
-<br>
+## 참고
+[3조 노션](https://www.notion.so/3-5-24b40cb3731d809a8cc4f178a860b82a)
+[발표 자료](https://docs.google.com/presentation/d/14XbEpcKG-hbMbHpR6UDzi3G-s1oT5Fjm/edit?slide=id.p1#slide=id.p1)
+[RAG 위키독](https://wikidocs.net/233780)
+[만개의 레시피](https://www.10000recipe.com/index.html)
+[Retriever 성능 지표 참고 영상](https://www.youtube.com/watch?v=uOWYV1T_g-w)
+[LangSmith 피드백 기능 참고 영상](https://www.youtube.com/watch?v=z0c2BcTnYpY)
