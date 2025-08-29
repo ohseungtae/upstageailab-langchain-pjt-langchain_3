@@ -21,8 +21,9 @@
 
 | ![오승태](https://avatars.githubusercontent.com/u/126853146?s=400&v=4) | ![이경도](https://avatars.githubusercontent.com/u/60279844?v=4) | ![홍상호](https://avatars.githubusercontent.com/u/48471292?v=4) | ![김재훈](https://avatars.githubusercontent.com/u/50897572?v=4) | 
 | :--------------------------------------------------------------: | :--------------------------------------------------------------: | :--------------------------------------------------------------: | :--------------------------------------------------------------: | 
-|            [오승태](https://github.com/ohseungtae)             |            [이경도](https://github.com/kdlee02)             |            [홍상호](https://github.com/ERyukSa)             |            [김재훈](https://github.com/willy0629)             |            
-|                   팀장,   111                |                   1111<br/>111                  |                  111<br/>111                   |                   1111<br/>1111                   |
+| [오승태](https://github.com/ohseungtae) | [이경도](https://github.com/kdlee02) | [홍상호](https://github.com/ERyukSa) | [김재훈](https://github.com/willy0629) |            
+| 팀장<br/>베이스라인 RAG 구축, 데이터 구축, RAG 평가, 코드 모듈화 및 리팩토링 | 다양한 텍스트 분할기법 적용, 프롬프트 엔지니어링, Streamlit 웹앱 구축 | Vector Store 구축, Retriever 실험 및 성능 개선 | Vector Store 실험 |
+
 
 <br>
 
