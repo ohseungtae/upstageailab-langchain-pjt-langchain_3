@@ -211,6 +211,54 @@ flowchart TD
 ```
 <br>
 
+```mermaid
+flowchart LR
+
+    %% ---------------------------
+    %% Indexing Pipeline (위쪽)
+    %% ---------------------------
+    subgraph indexing ["1. 데이터 준비 (Indexing Pipeline)"]
+        A["만개의 레시피 웹사이트"] -->|crawler.py| B["크롤링 데이터<br/>(JSON 파일들)"]
+        B -->|preprocess.py| C["전처리 & 중복제거<br/>(단일 JSON 파일)"]
+        C -->|vector_store.py| D{"Parent-Child<br/>청킹"}
+        D -->|Parent| E["부모 문서<br/>(원본 레시피)"]
+        D -->|Child| F["자식 청크<br/>(분할된 조각)"]
+        F -->|Upstage Passage Embedding| G["Chroma 벡터 저장소"]
+        E --> H["InMemory Docstore"]
+    end
+
+    %% ---------------------------
+    %% Inference Pipeline (아래쪽)
+    %% ---------------------------
+    subgraph inference ["2. RAG 실행 (Inference Pipeline)"]
+        J["사용자 질문"] --> K{"대화기록 기반<br/>질문 재구성"}
+        K --> L["질문 임베딩<br/>(Upstage Query Embedding)"]
+        L --> M{"유사도 검색<br/>(Similarity Search)"}
+        M -->|Top-k 자식 청크 ID| N["ParentDocumentRetriever"]
+        N -->|"부모 문서 (컨텍스트)"| O["프롬프트 템플릿<br/>(백종원 페르소나)"]
+        O --> P["Upstage Chat API<br/>(solar-pro2)"]
+        P --> Q["백종원 말투 답변 생성"]
+    end
+
+    %% ---------------------------
+    %% Cross connections
+    %% ---------------------------
+    G --> M
+    H --> N
+
+    %% ---------------------------
+    %% 스타일 지정
+    %% ---------------------------
+    style A fill:#1e88e5,stroke:#ffffff,stroke-width:3px,color:#ffffff
+    style J fill:#43a047,stroke:#ffffff,stroke-width:3px,color:#ffffff
+    style G fill:#8e24aa,stroke:#ffffff,stroke-width:3px,color:#ffffff
+    style H fill:#8e24aa,stroke:#ffffff,stroke-width:3px,color:#ffffff
+    style Q fill:#ff6f00,stroke:#ffffff,stroke-width:3px,color:#ffffff
+    style P fill:#e91e63,stroke:#ffffff,stroke-width:3px,color:#ffffff
+```
+
+<br>
+
 ## ✨ 프로젝트 핵심 기능
 
 -   **데이터 수집**: 특정 키워드("백종원")로 레시피를 검색하여 동적으로 크롤링
