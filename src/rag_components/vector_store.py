@@ -58,7 +58,8 @@ class VectorStoreManager:
         # 부모 문서(원본 레시피)에 고유 ID를 부여하고 docstore에 저장
         register_parent_docs(docstore, parent_documents)
         # 자식 문서(잘게 쪼갠 조각) 생성
-        child_documents = make_child_chunks(parent_documents, chunk_size=400, chunk_overlap=60)
+        # 청킹 사이즈 및 오버랩 수치 실험을 통해 가장 좋은거 정함
+        child_documents = make_child_chunks(parent_documents, chunk_size=300, chunk_overlap=30)
         
         print(f"INFO: 총 {len(parent_documents)}개의 부모 문서를 {len(child_documents)}개의 자식 청크로 분할했습니다.")
         print("INFO: 'passage' 모델로 자식 청크 임베딩 및 DB 저장을 진행합니다.")
