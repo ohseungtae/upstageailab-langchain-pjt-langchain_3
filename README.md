@@ -283,9 +283,9 @@ flowchart TD
 <br>
 
 ## 참고
-[3조 노션](https://www.notion.so/3-5-24b40cb3731d809a8cc4f178a860b82a)
-[발표 자료](https://docs.google.com/presentation/d/14XbEpcKG-hbMbHpR6UDzi3G-s1oT5Fjm/edit?slide=id.p1#slide=id.p1)
-[RAG 위키독](https://wikidocs.net/233780)
-[만개의 레시피](https://www.10000recipe.com/index.html)
-[Retriever 성능 지표 참고 영상](https://www.youtube.com/watch?v=uOWYV1T_g-w)
-[LangSmith 피드백 기능 참고 영상](https://www.youtube.com/watch?v=z0c2BcTnYpY)
+[3조 노션](https://www.notion.so/3-5-24b40cb3731d809a8cc4f178a860b82a) <br/>
+[발표 자료](https://docs.google.com/presentation/d/14XbEpcKG-hbMbHpR6UDzi3G-s1oT5Fjm/edit?slide=id.p1#slide=id.p1) <br/>
+[RAG 위키독](https://wikidocs.net/233780) <br/>
+[만개의 레시피](https://www.10000recipe.com/index.html) <br/>
+[Retriever 성능 지표 참고 영상](https://www.youtube.com/watch?v=uOWYV1T_g-w) <br/>
+[LangSmith 피드백 기능 참고 영상](https://www.youtube.com/watch?v=z0c2BcTnYpY) <br/>
