@@ -1,8 +1,21 @@
-# modules/utils_docstore.py
+# /src/utils/docstore.py
+
 import uuid
 from langchain.docstore.document import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
+# ... (compute_doc_id, register_parent_docs, make_child_chunks 함수는 기존과 동일)
+
+# --- 아래는 주석 처리된 대안 로직들 (참고용) ---
+# from langchain_experimental.text_splitter import SemanticChunker
+# from langchain_upstage import UpstageEmbeddings
+# ✨ 변경된 부분: config 모듈의 import 경로 수정
+# from src.core import config
+
+# def make_child_chunks(parent_documents, chunk_size=400, chunk_overlap=60):
+#     """의미론적 청킹을 위한 대안 함수"""
+#     embeddings = UpstageEmbeddings(model="solar-embedding-1-large-passage", api_key=config.UPSTAGE_API_KEY)
+#     # ... (나머지 로직) ...
 def compute_doc_id(md: dict) -> str:
     """
     항상 같은 입력 → 같은 doc_id 반환
@@ -52,47 +65,3 @@ def make_child_chunks(parent_documents, chunk_size=400, chunk_overlap=60):
             ch.metadata["doc_id"] = p.metadata["doc_id"]
             children.append(ch)
     return children
-
-# from langchain.text_splitter import TokenTextSplitter
-
-# def make_child_chunks(parent_documents, chunk_size=100, chunk_overlap=15):
-#     """
-#     부모 문서를 토큰 단위로 쪼개서 자식 청크를 생성하고,
-#     각 자식의 메타데이터에 부모의 doc_id를 복사한다.
-#     """
-#     splitter = TokenTextSplitter(
-#         chunk_size=chunk_size,
-#         chunk_overlap=chunk_overlap
-#     )
-#     children = []
-#     for p in parent_documents:
-#         for ch in splitter.split_documents([p]):
-#             ch.metadata["doc_id"] = p.metadata["doc_id"]
-#             children.append(ch)
-#     return children
-
-# from langchain_experimental.text_splitter import SemanticChunker
-# from langchain_upstage import UpstageEmbeddings
-# from . import config
-
-# def make_child_chunks(parent_documents, chunk_size=400, chunk_overlap=60):
-#     """
-#     부모 문서를 의미론적 청크로 분할하고,
-#     각 자식의 메타데이터에 부모의 doc_id를 복사합니다.
-#     """
-#     embeddings = UpstageEmbeddings(model="solar-embedding-1-large-passage", api_key=config.UPSTAGE_API_KEY)
-#     splitter = SemanticChunker(
-#         embeddings=embeddings,
-#         buffer_size=1,
-#         breakpoint_threshold_type="percentile",
-#         breakpoint_threshold_amount=0.9,
-#         sentence_split_regex=r"(?<=[.?!])\s+",
-#     )
-#     children = []
-#     for p in parent_documents:
-#         # 문서 분할
-#         docs = splitter.create_documents([p.page_content])
-#         for ch in docs:
-#             ch.metadata["doc_id"] = p.metadata["doc_id"]
-#             children.append(ch)
-#     return children

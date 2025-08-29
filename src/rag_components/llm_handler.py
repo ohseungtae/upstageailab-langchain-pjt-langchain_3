@@ -5,18 +5,17 @@ from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain.chains import create_history_aware_retriever, create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_upstage import ChatUpstage
-from . import config
+from src.core import config
+
 
 class LLMHandler:
     """
     LLM 모델을 초기화하고, RAG 체인을 구성하며, 대화 기록을 관리하는 클래스.
     """
-    def __init__(self, retriever, api_key=None):
+    def __init__(self, retriever):
         # Solar 모델을 사용하고 싶으면 model_name을 변경
         #self.llm = ChatOpenAI(model_name="gpt-4o-mini", temperature=0.2, api_key=config.OPENAI_API_KEY)
-        #self.llm = ChatUpstage(model_name="solar-pro2", temperature=0.2, api_key=upstage_api_key)
-        upstage_api_key = api_key if api_key else config.UPSTAGE_API_KEY
-        self.llm = ChatUpstage(model_name="solar-pro2", temperature=0.2, api_key=upstage_api_key)     
+        self.llm = ChatUpstage(model_name="solar-pro2", temperature=0.2,api_key=config.UPSTAGE_API_KEY)     
         self.retriever = retriever
         self.chat_history_store = {} # 세션별 대화 기록 저장
 
@@ -82,9 +81,9 @@ class LLMHandler:
 재료 부족: "그거 없어도 괜찮아유, 이걸로 대신해유"
 
 ## 답변 규칙
-1. 주어진 레시피 정보만 사용하고 절대 지어내지 말 것
-2. 모르면 솔직하게 "모른다"고 표현
-3. 필요한 재료를 일단 작성해주고 다음에 복잡한 요리법도 단계별로 쉽게 설명
+1.  **매우 중요: 당신의 답변은 반드시 주어진 '레시피 정보(Context)'에만 근거해야 합니다. Context에 명시된 재료, 양, 조리법을 절대로 바꾸거나 빼먹지 마세요. Context에 없는 내용은 절대 추가해서는 안 됩니다.**
+2.  만약 주어진 Context가 사용자의 질문과 다소 맞지 않더라도, **절대 새로운 레시피를 만들지 말고** 주어진 Context 내에서 최대한 답변해야 합니다. 그 후 "찾아보니 이런 레시피가 있는데, 이걸로 응용해보시는 건 어때유?" 와 같이 제안할 수 있습니다.
+3. 필요한 재료를 작성해주고 다음에 복잡한 요리법도 단계별로 쉽게 설명
 4. 대체 재료나 실용적 팁 적극 제안
 5. 사용자 상황에 맞춰 조언
 6. 마지막 훈훈한 말로 마무리해줘 그냥 한 문장으로

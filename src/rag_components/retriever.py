@@ -1,8 +1,7 @@
-# retriever.py
+# /src/rag_components/retriever.py
 from langchain.retrievers import ParentDocumentRetriever
 from langchain.storage import InMemoryStore
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-#from .vector_store import VectorStoreManager
 
 class AdvancedRetriever:
     """

@@ -1,29 +1,29 @@
-# vector_store.py
+# /src/rag_components/vector_store.py
+
 import json
 import os
 import sys
 import sqlite3
-# 내장 sqlite3 모듈을 pysqlite3로 덮어쓰기
 sys.modules["sqlite3"] = sqlite3
-from langchain_chroma import Chroma
-#from langchain_openai import OpenAIEmbeddings
-from langchain_upstage import UpstageEmbeddings
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.docstore.document import Document
-from langchain.storage import InMemoryStore # --- 추가된 부분 ---
 
-from . import config
-from .utils_docstore import compute_doc_id, register_parent_docs, make_child_chunks
+from langchain_chroma import Chroma
+from langchain_upstage import UpstageEmbeddings
+from langchain.docstore.document import Document
+from langchain.storage import InMemoryStore
+
+# ✨ 변경된 부분: import 경로 수정
+from src.core import config
+from src.utils.docstore import register_parent_docs, make_child_chunks
+
 
 class VectorStoreManager:
     """
     전처리된 데이터를 로드하여 벡터 DB를 구축하고 관리하는 클래스.
     """
-    def __init__(self, persist_directory=config.CHROMA_DB_PATH,api_keys=None):
-        upstage_api_key = api_keys if api_keys else config.UPSTAGE_API_KEY
+    def __init__(self, persist_directory=config.CHROMA_DB_PATH):
         self.persist_directory = persist_directory
-        self.doc_embedding = UpstageEmbeddings(model="solar-embedding-1-large-passage", api_key=upstage_api_key)
-        self.query_embedding = UpstageEmbeddings(model="solar-embedding-1-large-query", api_key=upstage_api_key)
+        self.doc_embedding = UpstageEmbeddings(model="solar-embedding-1-large-passage", api_key=config.UPSTAGE_API_KEY)
+        self.query_embedding = UpstageEmbeddings(model="solar-embedding-1-large-query", api_key=config.UPSTAGE_API_KEY)
     
     def _load_documents_from_json(self, json_path):
         if not os.path.exists(json_path):
@@ -58,7 +58,8 @@ class VectorStoreManager:
         # 부모 문서(원본 레시피)에 고유 ID를 부여하고 docstore에 저장
         register_parent_docs(docstore, parent_documents)
         # 자식 문서(잘게 쪼갠 조각) 생성
-        child_documents = make_child_chunks(parent_documents, chunk_size=400, chunk_overlap=60)
+        # 청킹 사이즈 및 오버랩 수치 실험을 통해 가장 좋은거 정함
+        child_documents = make_child_chunks(parent_documents, chunk_size=300, chunk_overlap=30)
         
         print(f"INFO: 총 {len(parent_documents)}개의 부모 문서를 {len(child_documents)}개의 자식 청크로 분할했습니다.")
         print("INFO: 'passage' 모델로 자식 청크 임베딩 및 DB 저장을 진행합니다.")

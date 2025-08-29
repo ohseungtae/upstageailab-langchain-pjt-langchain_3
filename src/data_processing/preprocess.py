@@ -4,9 +4,9 @@ import re
 import os
 import glob
 from difflib import SequenceMatcher # --- 추가된 부분 ---
-from . import config # --- 추가된 부분 ---
 
-# --- 추가된 부분: 유사도 계산 헬퍼 함수 ---
+from src.core import config
+
 def similarity(a, b):
     return SequenceMatcher(None, a, b).ratio()
 
